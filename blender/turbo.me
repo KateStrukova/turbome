@@ -1,84 +1,74 @@
-#
-# Blender turbo.me file
-# https://github.com/turboapps/turbome/tree/master/blender
-#
-# Licensed under the Apache License, Version 2.0
-# http://www.apache.org/licenses/LICENSE-2.0
+import bpy
 
-meta title="Blender"
-meta namespace="blender"
-meta name="blender"
+# Очистка сцены
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
 
-###################################
-# Pull dependency images
-###################################
+# Создание фюзеляжа
+bpy.ops.mesh.primitive_cylinder_add(radius=1, depth=5, location=(0, 0, 0))
+fuselage = bpy.context.object
+fuselage.name = "Fuselage"
 
-using wget,powershell
+# Создание крыла
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0))
+wing = bpy.context.object
+wing.scale[0] = 5  # Длина крыла
+wing.scale[1] = 0.1  # Толщина крыла
+wing.scale[2] = 1  # Ширина крыла
+wing.location[2] = 0.5
+wing.location[0] = 0
 
+# Создание хвоста
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0))
+tail = bpy.context.object
+tail.scale[0] = 2  # Длина хвоста
+tail.scale[1] = 0.1  # Толщина хвоста
+tail.scale[2] = 0.5  # Ширина хвоста
+tail.location[2] = -2
+tail.location[0] = 0
 
-###################################
-# Download and install
-###################################
+# Создание вертикального стабилизатора
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0))
+vertical_stabilizer = bpy.context.object
+vertical_stabilizer.scale[0] = 0.1  # Толщина стабилизатора
+vertical_stabilizer.scale[1] = 1  # Ширина стабилизатора
+vertical_stabilizer.scale[2] = 1  # Высота стабилизатора
+vertical_stabilizer.location[2] = -2.5
+vertical_stabilizer.location[0] = 0
+vertical_stabilizer.location[1] = 0.5
 
-cmd mkdir c:\Workspace
-workdir c:\Workspace
+# Создание кабины
+bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5, location=(0, 0, 2))
+cockpit = bpy.context.object
+cockpit.scale[1] = 1
+cockpit.scale[0] = 0.5
+cockpit.scale[2] = 0.5
 
-# Write powershell script
-batch cmd
-  echo param([string]$arg) >> getUrlAndVersion.ps1
-  echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 >> getUrlAndVersion.ps1
-  echo $page = Invoke-WebRequest -Uri "https://www.blender.org/download/" >> getUrlAndVersion.ps1
-  echo $link = ($page.Links.href -match "windows64.msi")[0]  >> getUrlAndVersion.ps1
-  echo $link -match "[0-9]\.[0-9]*[a-z]" ^| Out-Null>> getUrlAndVersion.ps1
-  echo $version = $Matches[0] >> getUrlAndVersion.ps1
-  echo if($arg -ne "link") {Write-Host $version; Exit 0} >> getUrlAndVersion.ps1
-  echo $link -match "[0-9]\.[0-9]*" ^| Out-Null>> getUrlAndVersion.ps1
-  echo $versionMain = $Matches[0] >> getUrlAndVersion.ps1
-  echo $downloadUrl = "https://download.blender.org/release/" >> getUrlAndVersion.ps1
-  echo $page = Invoke-WebRequest -Uri $downloadUrl >> getUrlAndVersion.ps1
-  echo $downloadUrl += $page.Links.href -match $versionMain >> getUrlAndVersion.ps1
-  echo $page = Invoke-WebRequest -Uri $downloadUrl >> getUrlAndVersion.ps1
-  echo $downloadUrl += $page.Links.href -match $version+"-windows32.zip" >> getUrlAndVersion.ps1
-  echo Write-Host $downloadUrl >> getUrlAndVersion.ps1
+# Группировка всех частей в один объект
+bpy.ops.object.select_all(action='DESELECT')
+fuselage.select_set(True)
+wing.select_set(True)
+tail.select_set(True)
+vertical_stabilizer.select_set(True)
+cockpit.select_set(True)
+bpy.context.view_layer.objects.active = fuselage
+bpy.ops.object.join()
 
-# Get url
-cmd powershell -File getUrlAndVersion.ps1 -arg "link"
-var url=last
+# Переименование объединенного объекта
+plane = bpy.context.object
+plane.name = "Simple_Plane"
 
-cmd powershell -File getUrlAndVersion.ps1 -arg "version"
-var tag=last
+# Установка камеры
+bpy.ops.object.camera_add(location=(10, -10, 10))
+camera = bpy.context.object
+camera.rotation_euler = (1.2, 0, 0.8)
+bpy.context.scene.camera = camera
 
-# Install
-cmd wget -Oblender.zip %url%
-cmd powershell Expand-Archive blender.zip C:\blenderTemp
+# Установка света
+bpy.ops.object.light_add(type='SUN', location=(10, 10, 10))
+light = bpy.context.object
 
-cmd dir /b C:\blenderTemp
-var blenderpath = "C:\blenderTemp\" + last
-cmd move %blenderpath% C:\blender
+# Сохранение файла
+bpy.ops.wm.save_as_mainfile(filepath="simple_plane.blend")
 
-
-# Install file associations
-cmd C:\blender\blender.exe -r
-
-###################################
-# Startup File
-###################################
-startup file ("C:\blender\blender.exe")
-
-###################################
-# Environment Variables
-###################################
-
-# No variables needed
-
-###################################
-# Clean up
-###################################
-
-workdir c:\
-
-cmd rmdir c:\Workspace /s /q
-cmd rmdir c:\wget /s /q
-cmd rmdir C:\blenderTemp /s /q
-
-meta tag=tag
+print("Модель самолёта создана и сохранена как 'simple_plane.blend'")
